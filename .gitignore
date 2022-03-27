@@ -3,5 +3,6 @@
 /venv
 
 # Всякий мусор
-*/__pycache__
+*\__pycache__
 .vscode
+*\versions
