@@ -245,35 +245,49 @@ State может иметь следующие значения:
 
 ## 6.1. Авторизация
 POST /auth/signin - регистрация
+
 POST /auth/token - получение пары токенов авторизации
+
 POST /auth/token/update - обновление токенов
+
 POST /auth/email/change - изменение текущей почты
-POST /auth/email/validate - запрос на отправку кода проверки email
+
 POST /auth/password/change - изменение пароля
+
 POST /auth/password/restore - востановление забытого пароля
 
 ## 6.2. Профиль
 GET|PATCH /user/@me - получение информации о текущем пользователе | Редактирование пользователя
+
 POST /user/@me/avatar - изменение аватара пользователя
+
 GET /user/{user_id} - получение информации о пользователе
+
 GET /user/{user_id}/walks - полученение прохождений пользователя
+
 GET /user/{user_id}/reviews - получение обзоров пользователя 
 
 ## 6.3. Тайтлы
 GET|POST /titles - получение страницы с тайтлами | Создание тайтла
+
 PATCH /titles/{title_id} - редактирование информации о тайтле
+
 POST /titles/{title_id}/cover - добавление или редактирование обложки тайтла
+
 DELETE /titles/{title_id} - удаление тайтла
 
 GET /titles/{title_id}/reviews - получение пользовательских отзывов на тайтл
+
 GET /titles/{title_id}/walks - получение прохождений
 
 ## 7.4. Прохождения
 POST|PATCH /walks - создание или редактирование прохождения
+
 DELETE /walks/{walk_id} - удаление прохождения
 
 ## 7.6. Отзывы
 POST|PATCH /walks - создание или редактирование прохождения
+
 DELETE /walks/{walk_id} - удаление прохождения
 
 # 8. Над сим убожеством страдают
