@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from server.core.config import settings
 
-engine = create_async_engine(settings.SQLALCHEMY_DB_URI, echo=True)
-Base = declarative_base(bind=engine)
+engine = create_async_engine(settings.SQLALCHEMY_DB_URI.format("asyncpg"), echo=settings.DEBUG)
+Base = declarative_base()
 
 Session = sessionmaker(bind=engine, class_=AsyncSession)
