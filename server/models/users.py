@@ -1,5 +1,5 @@
 from email.policy import default
-from sqlalchemy import Column, Integer, String, Date, DateTime
+from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean
 from sqlalchemy.orm import relationship
 
 from server.core.db import Base
