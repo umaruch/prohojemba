@@ -20,12 +20,14 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str = "1"
 
-    # Настройки Mail
+    # Получение URL базы данных
     @validator("SQLALCHEMY_DB_URI", pre=True)
     def assemble_db_uri(cls, v, values) -> str:
         if isinstance(v, str):
             return v
 
+        # Место под драйвер БД остается пустым, так как 
+        # alembic и сервер используют разные драйвера
         return "postgresql+{}://%s:%s@%s/%s" % (
             values.get("POSTGRES_USER"),
             values.get("POSTGRES_PASS"),
