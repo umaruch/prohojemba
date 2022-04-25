@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 
-
 from server.core.config import settings
 from server.api.router import api_router
 

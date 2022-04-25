@@ -7,12 +7,6 @@ router = APIRouter()
 async def sign_in():
     pass
 
-
-@router.get("/signin/validate")
-async def sign_in_validate_email():
-    pass
-
-
 @router.post("/token")
 async def login():
     pass
@@ -28,11 +22,6 @@ async def update_user_email():
     pass
 
 
-@router.get("/email/change/validate")
-async def update_user_email_validate_email():
-    pass
-
-
 @router.post("/password/change")
 async def update_user_password():
     pass
@@ -43,6 +32,6 @@ async def restore_user_password():
     pass
 
 
-@router.get("/password/restore/validate")
-async def restore_user_password_validate_email():
+@router.get("/email/validate")
+async def request_to_validate_email():
     pass
