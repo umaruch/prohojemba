@@ -15,10 +15,7 @@ class ApplicationBuilder:
     def _build_exceptions(self) -> None:
         pass
 
-    def _build_services(self) -> None:
-        pass
-
-    def _build_depends(self) -> None:
+    def _build_deps(self) -> None:
         pass
 
     def build(self) -> FastAPI:
