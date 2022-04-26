@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 
 
@@ -9,6 +10,16 @@ class ApplicationBuilder:
         self._settings = settings
         self._app = FastAPI()
 
+    def _config_logging(self) -> None:
+        """
+            Глобальная настройка логгирования
+        """
+        logging.basicConfig(**self._settings.logging.to_kwargs())
+
+    def _build_events(self) -> None:
+        # TODO Здесь настроить подключение к базе данных при запуске приложения, и закрытие всех подключений при выключении
+        pass
+
     def _build_routers(self) -> None:
         pass
 
@@ -19,8 +30,7 @@ class ApplicationBuilder:
         pass
 
     def build(self) -> FastAPI:
+        self._config_logging()
         self._build_routers()
         self._build_exceptions()
-        self._build_services()
-        self._build_depends()
         return self._app

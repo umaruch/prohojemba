@@ -1,4 +1,5 @@
 import pathlib
+import logging
 from typing import Optional, Dict, Any
 
 
@@ -31,7 +32,20 @@ class MailSettings(Base):
 
 
 class LoggingSettings(Base):
-    pass
+    PATH: str = "server.logs" # Путь к файлу логов
+    FILEMODE: str = "a"
+    LEVEL: int = logging.DEBUG if DEBUG else logging.INFO
+    DATE_FORMAT: str = "%d.%m.%Y %H:%M:%S"
+    STR_FORMAT: str = "%(asctime)s - [%(levelname)s] - %(name)s  - %(message)s"
+    
+    def to_kwargs(self):
+        return {
+            "filename": self.PATH,
+            "filemode": self.FILEMODE,
+            "level": self.LEVEL,
+            "datefmt": self.DATE_FORMAT,
+            "format": self.STR_FORMAT
+        }
 
 
 class DatabaseSettings(Base):
@@ -52,7 +66,6 @@ class DatabaseSettings(Base):
             user=values.get("USER"), password=values.get("PASS")
         ).replace("postgresql", "postgresql+asyncpg")
         
-
     def to_kwargs(self) -> Dict:
         return {
             "url": self.URL,
@@ -72,4 +85,5 @@ class Settings:
     application: ApplicationSettings = ApplicationSettings()
     database: DatabaseSettings = DatabaseSettings()
     mail: MailSettings = MailSettings()
+    logging: LoggingSettings = LoggingSettings()
 
