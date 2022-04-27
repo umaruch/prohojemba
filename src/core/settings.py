@@ -8,12 +8,14 @@ from pydantic import BaseSettings, Field, validator, PostgresDsn
 # Ставить False если работает релизная версия
 DEBUG = True
 
-BASE_DIR = pathlib.Path(__file__).resolve().parent().parent().parent()
+BASE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
+print(BASE_DIR)
 ENV_PATH = BASE_DIR / ".env" 
 
 
 class Base(BaseSettings):
-    def to_kwargs(self):
+    @property
+    def kwargs(self):
         """
             Преобразование атрибутов в словарь аргументов
         """
@@ -38,7 +40,8 @@ class LoggingSettings(Base):
     DATE_FORMAT: str = "%d.%m.%Y %H:%M:%S"
     STR_FORMAT: str = "%(asctime)s - [%(levelname)s] - %(name)s  - %(message)s"
     
-    def to_kwargs(self):
+    @property
+    def kwargs(self):
         return {
             "filename": self.PATH,
             "filemode": self.FILEMODE,
@@ -66,7 +69,8 @@ class DatabaseSettings(Base):
             user=values.get("USER"), password=values.get("PASS")
         ).replace("postgresql", "postgresql+asyncpg")
         
-    def to_kwargs(self) -> Dict:
+    @property
+    def kwargs(self) -> Dict:
         return {
             "url": self.URL,
             "echo": self.ECHO
@@ -78,7 +82,15 @@ class ApplicationSettings(Base):
     VERSION: str = "0.0.1"
     DEBUG: bool = DEBUG
     API_URL: str = "/api/v1"
-    SECRET_KEY: str = Field(..., "SECRET_KEY")
+    SECRET_KEY: str = Field(..., env="SECRET_KEY")
+
+    @property
+    def kwargs(self) -> Dict:
+        return {
+            "debug": self.DEBUG,
+            "title": self.APP_NAME,
+            "version": self.VERSION,
+        }
 
 
 class Settings:
@@ -87,3 +99,4 @@ class Settings:
     mail: MailSettings = MailSettings()
     logging: LoggingSettings = LoggingSettings()
 
+settings = Settings()

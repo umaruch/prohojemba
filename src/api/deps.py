@@ -1,8 +1,9 @@
-from re import L
+from fastapi import Request
 
 
-def get_db_connection():
-    pass
+def get_db_connection(req: Request):
+    try:
+        
 
 def get_redis_connection():
     pass

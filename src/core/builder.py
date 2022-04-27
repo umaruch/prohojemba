@@ -1,36 +1,25 @@
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 
 
-from src.core.settings import Settings
+from src.core.settings import settings
+from src.core.events import create_startup_handler
+from src.api.routers import routers
 
 
-class ApplicationBuilder:
-    def __init__(self, settings: Settings) -> None:
-        self._settings = settings
-        self._app = FastAPI()
+def get_application() -> FastAPI:
+    # Конфигурация логгирования
+    logging.basicConfig(**settings.logging.kwargs)
 
-    def _config_logging(self) -> None:
-        """
-            Глобальная настройка логгирования
-        """
-        logging.basicConfig(**self._settings.logging.to_kwargs())
+    app = FastAPI(**settings.application.kwargs)
+    # Регистрация роутеров
+    main_router = APIRouter()
+    for url, router in routers.items():
+        main_router.include_router(router=router, prefix=url)
+    app.include_router(main_router, 
+        prefix=settings.application.API_URL)
+    
+    # Настройка действий при включении и выключении сервера
+    app.add_event_handler("startup", create_startup_handler(app, settings))
 
-    def _build_events(self) -> None:
-        # TODO Здесь настроить подключение к базе данных при запуске приложения, и закрытие всех подключений при выключении
-        pass
-
-    def _build_routers(self) -> None:
-        pass
-
-    def _build_exceptions(self) -> None:
-        pass
-
-    def _build_deps(self) -> None:
-        pass
-
-    def build(self) -> FastAPI:
-        self._config_logging()
-        self._build_routers()
-        self._build_exceptions()
-        return self._app
+    return app
