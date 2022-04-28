@@ -3,7 +3,7 @@ import logging
 from typing import Optional, Dict, Any
 
 
-from pydantic import BaseSettings, Field, validator, PostgresDsn
+from pydantic import BaseSettings, Field, validator, PostgresDsn, EmailStr
 
 # Ставить False если работает релизная версия
 DEBUG = True
@@ -30,11 +30,26 @@ class MailSettings(Base):
     """
         Настройки, необходимые для отправки писем на email
     """
-    pass
+    MAIL_SERVER: str = Field(..., env="MAIL_SERVER")
+    MAIL_PORT: int = Field(..., env="MAIL_PORT")
+    MAIL_USER: str = Field(..., env="MAIL_USER")
+    MAIL_PASS: str = Field(..., env="MAIL_PASS")
+    USE_TLS: bool = True
+    MAIL_SENDER: EmailStr = Field(..., env="MAIL_SENDER") # Почта, с которой будут отсылаться сообщения
+
+    @property
+    def kwargs(self):
+        return {
+            "hostname": self.MAIL_SERVER,
+            "port": self.MAIL_PORT,
+            "username": self.MAIL_USER,
+            "password": self.MAIL_PASS,
+            "use_tls": self.USE_TLS
+        }
 
 
 class LoggingSettings(Base):
-    PATH: str = "server.logs" # Путь к файлу логов
+    LOGFILE_PATH: str = "server.logs" # Путь к файлу логов
     FILEMODE: str = "a"
     LEVEL: int = logging.DEBUG if DEBUG else logging.INFO
     DATE_FORMAT: str = "%d.%m.%Y %H:%M:%S"
@@ -43,7 +58,7 @@ class LoggingSettings(Base):
     @property
     def kwargs(self):
         return {
-            "filename": self.PATH,
+            "filename": self.LOGFILE_PATH,
             "filemode": self.FILEMODE,
             "level": self.LEVEL,
             "datefmt": self.DATE_FORMAT,

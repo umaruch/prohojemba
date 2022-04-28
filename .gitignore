@@ -7,3 +7,7 @@
 .vscode
 *\versions
 node_modules
+
+
+# Логи
+*.logs

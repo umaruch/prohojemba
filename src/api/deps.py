@@ -1,9 +1,9 @@
+from typing import Generator
 from fastapi import Request
 
 
-def get_db_connection(req: Request):
-    try:
-        
+async def get_db_connection(req: Request) -> Generator:
+    pass
 
 def get_redis_connection():
     pass
