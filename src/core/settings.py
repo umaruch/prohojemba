@@ -3,13 +3,12 @@ import logging
 from typing import Optional, Dict, Any
 
 
-from pydantic import BaseSettings, Field, validator, PostgresDsn, EmailStr
+from pydantic import BaseSettings, Field, validator, PostgresDsn, EmailStr, RedisDsn
 
 # Ставить False если работает релизная версия
 DEBUG = True
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
-print(BASE_DIR)
 ENV_PATH = BASE_DIR / ".env" 
 
 
@@ -30,20 +29,20 @@ class MailSettings(Base):
     """
         Настройки, необходимые для отправки писем на email
     """
-    MAIL_SERVER: str = Field(..., env="MAIL_SERVER")
-    MAIL_PORT: int = Field(..., env="MAIL_PORT")
-    MAIL_USER: str = Field(..., env="MAIL_USER")
-    MAIL_PASS: str = Field(..., env="MAIL_PASS")
+    SERVER: str = Field(..., env="MAIL_SERVER")
+    PORT: int = Field(..., env="MAIL_PORT")
+    USER: str = Field(..., env="MAIL_USER")
+    PASS: str = Field(..., env="MAIL_PASS")
     USE_TLS: bool = True
-    MAIL_SENDER: EmailStr = Field(..., env="MAIL_SENDER") # Почта, с которой будут отсылаться сообщения
+    SENDER: EmailStr = Field(..., env="MAIL_SENDER") # Почта, с которой будут отсылаться сообщения
 
     @property
     def kwargs(self):
         return {
-            "hostname": self.MAIL_SERVER,
-            "port": self.MAIL_PORT,
-            "username": self.MAIL_USER,
-            "password": self.MAIL_PASS,
+            "hostname": self.SERVER,
+            "port": self.PORT,
+            "username": self.USER,
+            "password": self.PASS,
             "use_tls": self.USE_TLS
         }
 
@@ -92,6 +91,31 @@ class DatabaseSettings(Base):
         }
 
 
+class RedisSettings(Base):
+    HOST: str = Field("localhost", env="REDIS_HOST")
+    USER: str = Field(None, env="REDIS_USER")
+    PASS: str = Field(None, env="REDIS_PASS")
+    DB: int = Field(1, env="REDIS_DB")  
+
+    URL: Optional[str]
+
+    @validator("URL", pre=True)
+    def assemble_redis_url(cls, v: Optional[str], values: Dict[str, Any]) -> str:
+        if isinstance(v, str):
+            return v
+        return RedisDsn.build(
+            scheme="redis",
+            host=values.get("HOST"), path=f"/{values.get('DB')}",
+            user=values.get("USER"), password=values.get("PASS")
+        )
+
+    @property
+    def kwargs(self):
+        return {
+            "url": self.URL
+        }
+
+
 class ApplicationSettings(Base):
     APP_NAME: str = "Prohojemba"
     VERSION: str = "0.0.1"
@@ -112,6 +136,10 @@ class Settings:
     application: ApplicationSettings = ApplicationSettings()
     database: DatabaseSettings = DatabaseSettings()
     mail: MailSettings = MailSettings()
+    redis: RedisSettings = RedisSettings()
     logging: LoggingSettings = LoggingSettings()
+
+    def __init__(self) -> None:
+        print("settings init")
 
 settings = Settings()

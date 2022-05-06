@@ -1,6 +1,6 @@
-from src.api.endpoints import auth, debug
+from src.api.endpoints import auth, users
 
 routers = {
     "/auth": auth.router,
-    "/debug": debug.router
+    "/users": users.router
 }
