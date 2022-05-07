@@ -79,9 +79,9 @@ class DatabaseSettings(Base):
             return v
         
         return PostgresDsn.build(
-            scheme="postgresql", host=values.get("HOST"), path=f"/{values.get('NAME') or ''}",
+            scheme="postgresql+asyncpg", host=values.get("HOST"), path=f"/{values.get('NAME') or ''}",
             user=values.get("USER"), password=values.get("PASS")
-        ).replace("postgresql", "postgresql+asyncpg")
+        )
         
     @property
     def kwargs(self) -> Dict:
