@@ -122,7 +122,7 @@ class ApplicationSettings(Base):
     DEBUG: bool = DEBUG
     API_URL: str = "/api/v1"
     SECRET_KEY: str = Field(..., env="SECRET_KEY")
-
+    
     @property
     def kwargs(self) -> Dict:
         return {

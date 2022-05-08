@@ -31,8 +31,9 @@ def get_repository(repo_type: Type[BaseRepository]) -> Callable[[AsyncSession], 
 
 def get_current_user_by_access_token(
     token: str = Depends(security.oauth2)
-):
+) -> int:
     """
         Получение информации о пользователе из access токена
     """
-    pass
+    return security.decode_user_token(token, "access_token")
+    

@@ -1,4 +1,10 @@
+from fastapi import Form
 from pydantic import BaseModel
+
+
+class AuthForm:
+    email: str = Form(...)
+    password: str = Form(...)
 
 
 class TokensPair(BaseModel):
