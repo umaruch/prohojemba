@@ -1,5 +1,6 @@
 from typing import Dict, Any, Optional, Tuple
 from datetime import timedelta, datetime
+import random
 import jwt
 import uuid
 from fastapi.exceptions import HTTPException
@@ -25,6 +26,10 @@ def get_password_hash(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_validation_code() -> str:
+    return str(random.randrange(111111, 999999))
 
 
 def _encode_token(payload: Dict[str, Any]) -> str:

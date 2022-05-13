@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, Depends, status
+from fastapi import APIRouter, Form, Depends, status, BackgroundTasks
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from aioredis import Redis
@@ -7,7 +7,7 @@ from src.api import deps
 from src.crud import users_crud, cache_crud
 from src.schemes.auth import TokensPair
 from src.schemes.forms import SigninForm, ValidateEmailForm
-from src.services import security
+from src.services import security, email
 
 router = APIRouter()
 
@@ -27,10 +27,17 @@ async def signin(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Username already exists")
 
     # Создание пользователя 
-    user_id = await users_crud.create_user(db, form.username, security.get_password_hash(form.password), form.username)
-    
+    user_id = await users_crud.create_user(db, form.email, security.get_password_hash(form.password), form.username)
 
-    return security.get_tokens_pair(user_id)
+    access_token = security.encode_access_token(user_id)
+    session_uuid, refresh_token = security.encode_refresh_token(user_id)
+
+    await cache_crud.set_refresh_token(redis, refresh_token, user_id, session_uuid)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }
 
 
 @router.post("/token", tags=["Авторизация"], response_model=TokensPair)
@@ -40,7 +47,6 @@ async def token(
 ):
     access_token = security.encode_access_token(user_id)
     session_uuid, refresh_token = security.encode_refresh_token(user_id)
-    print(session_uuid)
 
     await cache_crud.set_refresh_token(redis, refresh_token, user_id, session_uuid)
 
@@ -92,17 +98,17 @@ async def restore_user_password():
 
 @router.post("/email/validate", tags=["Авторизация"])
 async def validate_email(
+    tasks: BackgroundTasks,
     form: ValidateEmailForm = Depends(ValidateEmailForm),
+    db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    """
-    TODO
-    1) Генерация кода валидации
-    2) Сохранение кода в редис
-    3) Отправка сообщения на указанную почту
-    4) ОТправка уведомления об успешной операции
-    """
-    await cache_crud.set_validation_code(
-        redis, form.email, form.validation_type, "111111"
-    )
-    return "ok"
+    code = security.get_validation_code()
+    if await users_crud.get_user_by_email(db, form.email):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email already exists")
+
+    await cache_crud.set_validation_code(redis, form.email, form.validation_type, code)
+
+    tasks.add_task(email.send_register_message, email=form.email, code=code)
+
+    return {"status": "ok"}

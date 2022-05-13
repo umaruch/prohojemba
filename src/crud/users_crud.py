@@ -25,6 +25,11 @@ async def get_user_by_id(db: AsyncSession, user_id: int, with_profile: bool = Fa
     return (await db.execute(sql)).scalars().first()
 
 
+async def get_user_by_email(db: AsyncSession, email: str) -> User:
+    sql = select(User).where(User.email==email)
+    return (await db.execute(sql)).scalars().first()
+
+
 async def get_profile_by_username(db: AsyncSession, username: str) -> Optional[Profile]:
     sql = select(Profile).where(Profile.username==username)
     return (await db.execute(sql)).scalars().first()
