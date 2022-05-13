@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends
-from aioredis import Redis
 
 
 from src.api import deps
-from src.repositories.users import UsersRepository
+from src.models.users import User
+from src.schemes.users import CurrentUserProfile
 
 
 router = APIRouter()
 
 
-@router.get("/@me", tags=["Пользователи"])
+@router.get("/@me", tags=["Пользователи"], response_model=CurrentUserProfile)
 async def get_current_user(
-    user_id: int = Depends(deps.get_current_user_by_access_token)
-):  
-    return user_id
+    user: User = Depends(deps.get_current_user_by_access_token)
+):   
+    return user
 
 
 @router.patch("/@me", tags=["Пользователи"])

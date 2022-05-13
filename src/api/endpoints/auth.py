@@ -1,40 +1,78 @@
-from fastapi import APIRouter, Form, Depends
+from fastapi import APIRouter, Form, Depends, status
+from fastapi.exceptions import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 from aioredis import Redis
 
 from src.api import deps
-from src.schemes.auth import AuthForm
+from src.crud import users_crud, cache_crud
+from src.schemes.auth import TokensPair
+from src.schemes.forms import SigninForm, ValidateEmailForm
 from src.services import security
 
 router = APIRouter()
 
 
-@router.post("/signin", tags=["Авторизация"])
-async def signin():
-    return "Hello, World"
+@router.post("/signin", tags=["Авторизация"], response_model=TokensPair)
+async def signin(
+    form: SigninForm = Depends(SigninForm),
+    db: AsyncSession = Depends(deps.get_db_session),
+    redis: Redis = Depends(deps.get_redis_connection)
+) -> TokensPair:
+    # Проверка валидности email
+    if not await cache_crud.get_validation_code(redis, form.email, "signin") == form.code:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Incorrect email validation code")
+
+    # Проверка наличия пользователя с тем-же именем
+    if await users_crud.get_profile_by_username(db, form.username):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Username already exists")
+
+    # Создание пользователя 
+    user_id = await users_crud.create_user(db, form.username, security.get_password_hash(form.password), form.username)
+    
+
+    return security.get_tokens_pair(user_id)
 
 
-@router.post("/token", tags=["Авторизация"])
-async def token():
-    form: AuthForm = Depends(),
-    access_token = security.encode_user_access_token(5)
-    refresh_token = security.encode_user_refresh_token(5)
+@router.post("/token", tags=["Авторизация"], response_model=TokensPair)
+async def token(
+    user_id: int = 5,
+    redis: Redis = Depends(deps.get_redis_connection)
+):
+    access_token = security.encode_access_token(user_id)
+    session_uuid, refresh_token = security.encode_refresh_token(user_id)
+    print(session_uuid)
+
+    await cache_crud.set_refresh_token(redis, refresh_token, user_id, session_uuid)
+
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer" 
+        "refresh_token": refresh_token
     }
 
 
 @router.post("/token/update", tags=["Авторизация"])
 async def update_tokens_pair(
     refresh_token: str = Form(...),
-    redis_session: Redis = Depends(deps.get_redis_connection)
+    redis: Redis = Depends(deps.get_redis_connection)
     ):
     """
         Проверка refresh токена, создание пары новых токенов
 
     """
-    pass
+    session_uuid, user_id = security.decode_refresh_token(refresh_token)
+
+    if not refresh_token == await cache_crud.get_refresh_token(redis, user_id, session_uuid):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    access_token = security.encode_access_token(user_id)
+    session_uuid, refresh_token = security.encode_refresh_token(user_id, session_uuid)
+
+    await cache_crud.set_refresh_token(redis, refresh_token, user_id, session_uuid)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }
 
 
 @router.post("/email/change", tags=["Авторизация"])
@@ -53,5 +91,18 @@ async def restore_user_password():
 
 
 @router.post("/email/validate", tags=["Авторизация"])
-async def validate_email():
-    pass
+async def validate_email(
+    form: ValidateEmailForm = Depends(ValidateEmailForm),
+    redis: Redis = Depends(deps.get_redis_connection)
+):
+    """
+    TODO
+    1) Генерация кода валидации
+    2) Сохранение кода в редис
+    3) Отправка сообщения на указанную почту
+    4) ОТправка уведомления об успешной операции
+    """
+    await cache_crud.set_validation_code(
+        redis, form.email, form.validation_type, "111111"
+    )
+    return "ok"

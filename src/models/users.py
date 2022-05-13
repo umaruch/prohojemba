@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, DateTime
 from sqlalchemy.orm import relationship
-
+from datetime import date, datetime
 
 from src.models.base import Base
 
@@ -11,7 +11,7 @@ class User(Base):
     
     email = Column("email", String(32), unique=True, index=True)
     password_hash = Column("password_hash", String(256))
-    joined_at = Column("joined_at", Date)
-    last_auth_at = Column("last_auth_at", DateTime)
+    joined_at = Column("joined_at", Date, default=date.today())
+    last_auth_at = Column("last_auth_at", DateTime, default=datetime.utcnow())
 
     profile = relationship("Profile", uselist=False)
