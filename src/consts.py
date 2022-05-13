@@ -8,3 +8,10 @@ ACTIVITY_STATUS = [
 TITLE_TYPES = [
     "game", "movie", "series", "anime", "book", "comic", "manga"
 ]
+
+
+EMAIL_VALIDATION_TYPES = [
+    "signin",
+    "passrestore",
+    "emailchange"
+]

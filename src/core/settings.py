@@ -123,6 +123,9 @@ class ApplicationSettings(Base):
     API_URL: str = "/api/v1"
     SECRET_KEY: str = Field(..., env="SECRET_KEY")
 
+    ACCESS_TOKEN_EXPIRE_SECONDS = 1 * 1 * 60 # часы * минуты * секунды
+    REFRESH_TOKEN_EXPIRE_SECONDS = 1 * 1 * 2 * 60  # дни * часы * минуты * секунды
+    
     @property
     def kwargs(self) -> Dict:
         return {
