@@ -1,13 +1,17 @@
-from fastapi import APIRouter, Form, Depends, status, BackgroundTasks
+from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from aioredis import Redis
+from datetime import datetime
+
 
 from src.api import deps
 from src.crud import users_crud, cache_crud
+from src.models.users import User
 from src.schemes.auth import TokensPair
 from src.schemes.forms import SigninForm, LoginForm, RefreshTokenForm, ValidateEmailForm, ChangeEmailForm, ChangePasswordForm, RestorePasswordForm
 from src.services import security, email
+
 
 router = APIRouter()
 
@@ -43,17 +47,26 @@ async def signin(
 @router.post("/token", tags=["Авторизация"], response_model=TokensPair)
 async def token(
     form: LoginForm = Depends(LoginForm),
+    db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    access_token = security.encode_access_token(user_id)
-    session_uuid, refresh_token = security.encode_refresh_token(user_id)
+    user = await users_crud.get_user_by_email(db, form.email)
+    if user and security.verify_password(form.password, user.password_hash):
+        await users_crud.update_user(db, user, {
+            "last_auth_at": datetime.utcnow()
+        })
 
-    await cache_crud.set_refresh_token(redis, refresh_token, user_id, session_uuid)
+        access_token = security.encode_access_token(user.id)
+        session_uuid, refresh_token = security.encode_refresh_token(user.id)
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token
-    }
+        await cache_crud.set_refresh_token(redis, refresh_token, user.id, session_uuid)
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        }
+    
+    raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
 
 
 @router.post("/token/update", tags=["Авторизация"])
@@ -70,6 +83,8 @@ async def update_tokens_pair(
     if not form.refresh_token == await cache_crud.get_refresh_token(redis, user_id, session_uuid):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
+    # TODO Добавить обновление последнего обновления токена
+
     access_token = security.encode_access_token(user_id)
     session_uuid, refresh_token = security.encode_refresh_token(user_id, session_uuid)
 
@@ -82,17 +97,26 @@ async def update_tokens_pair(
 
 
 @router.post("/email/change", tags=["Авторизация"])
-async def chenge_user_email(
-    form: ChangeEmailForm = Depends(ChangeEmailForm)
+async def change_user_email(
+    form: ChangeEmailForm = Depends(ChangeEmailForm),
+    user: User = Depends(deps.get_current_user_by_access_token)
 ):
     pass
 
 
 @router.post("/password/change", tags=["Авторизация"])
 async def change_user_password(
-    form: ChangePasswordForm = Depends(ChangePasswordForm)
+    form: ChangePasswordForm = Depends(ChangePasswordForm),
+    user: User = Depends(deps.get_current_user_by_access_token),
+    db: AsyncSession = Depends(deps.get_db_session)
 ):
-    pass
+    if security.verify_password(form.current_password, user.password_hash):
+        users_crud.update_user(db, user, {
+            "password_hash": security.get_password_hash(form.new_password) 
+        })
+        return {"status": "ok"}
+
+    raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Incorrect current password")
 
 
 @router.post("/password/restore", tags=["Авторизация"])
