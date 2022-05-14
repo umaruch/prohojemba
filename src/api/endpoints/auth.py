@@ -6,7 +6,7 @@ from aioredis import Redis
 from src.api import deps
 from src.crud import users_crud, cache_crud
 from src.schemes.auth import TokensPair
-from src.schemes.forms import SigninForm, ValidateEmailForm
+from src.schemes.forms import SigninForm, LoginForm, RefreshTokenForm, ValidateEmailForm, ChangeEmailForm, ChangePasswordForm, RestorePasswordForm
 from src.services import security, email
 
 router = APIRouter()
@@ -42,7 +42,7 @@ async def signin(
 
 @router.post("/token", tags=["Авторизация"], response_model=TokensPair)
 async def token(
-    user_id: int = 5,
+    form: LoginForm = Depends(LoginForm),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
     access_token = security.encode_access_token(user_id)
@@ -58,16 +58,16 @@ async def token(
 
 @router.post("/token/update", tags=["Авторизация"])
 async def update_tokens_pair(
-    refresh_token: str = Form(...),
+    form: RefreshTokenForm = Depends(RefreshTokenForm),
     redis: Redis = Depends(deps.get_redis_connection)
     ):
     """
         Проверка refresh токена, создание пары новых токенов
 
     """
-    session_uuid, user_id = security.decode_refresh_token(refresh_token)
+    session_uuid, user_id = security.decode_refresh_token(form.refresh_token)
 
-    if not refresh_token == await cache_crud.get_refresh_token(redis, user_id, session_uuid):
+    if not form.refresh_token == await cache_crud.get_refresh_token(redis, user_id, session_uuid):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     access_token = security.encode_access_token(user_id)
@@ -82,17 +82,23 @@ async def update_tokens_pair(
 
 
 @router.post("/email/change", tags=["Авторизация"])
-async def chenge_user_email():
+async def chenge_user_email(
+    form: ChangeEmailForm = Depends(ChangeEmailForm)
+):
     pass
 
 
 @router.post("/password/change", tags=["Авторизация"])
-async def change_user_password():
+async def change_user_password(
+    form: ChangePasswordForm = Depends(ChangePasswordForm)
+):
     pass
 
 
 @router.post("/password/restore", tags=["Авторизация"])
-async def restore_user_password():
+async def restore_user_password(
+    form: RestorePasswordForm = Depends(RestorePasswordForm)
+):
     pass
 
 
