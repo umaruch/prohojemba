@@ -4,8 +4,17 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.orm import selectinload
 from fastapi.encoders import jsonable_encoder
 
+
+from src.crud.base_crud import BaseCRUD
 from src.models.users import User
 from src.models.profiles import Profile
+
+
+
+class UserCRUD(BaseCRUD):
+    async def get_by_email(self):
+        pass
+
 
 async def create_user(db: AsyncSession, email: str, password_hash: str, username: str) -> int:
     user = User(email=email, password_hash=password_hash, profile=Profile(username=username))
@@ -13,7 +22,6 @@ async def create_user(db: AsyncSession, email: str, password_hash: str, username
     await db.commit()
     print(user)
     return user.id
-
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int, with_profile: bool = False) -> User:
