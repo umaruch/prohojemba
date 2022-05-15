@@ -1,6 +1,6 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Union
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select, update, delete
 from sqlalchemy.orm import selectinload
 from fastapi.encoders import jsonable_encoder
 
@@ -35,10 +35,11 @@ async def get_profile_by_username(db: AsyncSession, username: str) -> Optional[P
     return (await db.execute(sql)).scalars().first()
 
 
-async def update_user(db: AsyncSession, user: User, update_data: Dict) -> None:
-    for field in update_data:
-        setattr(user, field, update_data[field])
+async def update_user(db: AsyncSession, user: Union[User, int], update_data: Dict) -> None:
+    if isinstance(user, int):
+        sql = update(User).where(User.id==user).values(**update_data)
+    else:
+        sql = update(User).where(User.id==user.id).values(**update_data)
 
-    db.add(user)
-    await db.commit()
-    
+    await db.execute(sql)
+    await db.commit()  
