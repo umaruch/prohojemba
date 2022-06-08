@@ -1,4 +1,4 @@
-from typing import Generator, Type, Callable
+from typing import Generator, Type, Iterable, Callable
 from fastapi import Request, Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from aioredis import Redis
@@ -20,7 +20,11 @@ async def get_db_session(req: Request) -> Generator[AsyncSession, None, None]:
 
 def get_redis_connection(req: Request) -> Redis: 
     return req.app.state.redis()
-    
+
+
+def crud_generator(crud_list: Iterable[Type[]]) -> Callable:
+    pass
+
 
 async def get_current_user_by_access_token(
     db: AsyncSession = Depends(get_db_session),

@@ -5,15 +5,12 @@ from sqlalchemy.orm import selectinload
 from fastapi.encoders import jsonable_encoder
 
 
-from src.crud.base_crud import BaseCRUD
+from src.crud.base import BaseCRUD
 from src.models.users import User
 from src.models.profiles import Profile
 
 
-
-class UserCRUD(BaseCRUD):
-    async def get_by_email(self):
-        pass
+users = BaseCRUD(User)
 
 
 async def create_user(db: AsyncSession, email: str, password_hash: str, username: str) -> int:
