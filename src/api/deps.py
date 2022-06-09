@@ -4,8 +4,6 @@ from fastapi.security import HTTPAuthorizationCredentials
 from aioredis import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
-from src.crud import users_crud
 from src.models.users import User
 from src.services import security
 
@@ -38,7 +36,8 @@ async def get_current_user_by_access_token(
     """
         TODO Получение информации о пользователе из access токена
     """
-    token = credentials.credentials
-    user_id = security.decode_access_token(token)
-    user = await users_crud.get_user_by_id(db, user_id)
-    return user
+    # token = credentials.credentials
+    # user_id = security.decode_access_token(token)
+    # user = await users_crud.get_user_by_id(db, user_id)
+    # return user
+    return credentials

@@ -12,5 +12,5 @@ class Activity(Base):
     updated_at = Column(Date)
 
     __table_args__ = (
-        UniqueConstraint("user_id", "title_id", "u_user_title")
+        UniqueConstraint("user_id", "title_id", name="u_user_title"),
     )
