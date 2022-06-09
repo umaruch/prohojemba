@@ -1,17 +1,14 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime
-from sqlalchemy.orm import relationship
-from datetime import date, datetime
+from sqlalchemy import Column, Integer, String
+
 
 from src.models.base import Base
 
 
 class User(Base):
     __tablename__ = "users"
-    id = Column("id", Integer, primary_key=True, autoincrement=True)
-    
-    email = Column("email", String(32), unique=True, index=True)
-    password_hash = Column("password_hash", String(256))
-    joined_at = Column("joined_at", Date, default=date.today())
-    last_auth_at = Column("last_auth_at", DateTime, default=datetime.utcnow())
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String, index=True, unique=True)
+    encoded_password = Column(String)
+    username = Column(String, unique=True)
+    avatar_uri = Column(String, nullable=True)
 
-    profile = relationship("Profile", uselist=False)

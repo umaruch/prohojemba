@@ -1,4 +1,3 @@
-from curses import echo
 from fastapi import FastAPI
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession

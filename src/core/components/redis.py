@@ -11,3 +11,4 @@ def connect(app: FastAPI, settings: Settings) -> None:
 
 async def disconnect(app: FastAPI) -> None:
     await app.state.redispool.disconnect()
+    

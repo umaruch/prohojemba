@@ -5,7 +5,7 @@ router = APIRouter()
 
 
 @router.get("", tags=["Тайтлы"])
-async def get_titles_page():
+async def get_titles(type: str, offset: int, limit: int) -> None:
     pass
 
 
