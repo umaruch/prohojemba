@@ -9,8 +9,8 @@ from src.core.components import db, redis
 def create_startup_handler(app: FastAPI, settings: Settings) -> Callable:
     async def start_app() -> None:
         # Отсюдова запускаются функции, которые надо выполнить при включении сервера
-        db.connect(app, settings.redis)
-        redis.connect(app, settings.database)
+        db.connect(app, settings.database)
+        redis.connect(app, settings.redis)
 
     return start_app
 

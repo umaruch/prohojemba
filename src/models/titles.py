@@ -11,3 +11,4 @@ class Title(Base):
     type = Column(String)
     cover = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    year = Column(Integer)

@@ -1,47 +1,47 @@
-from fastapi import APIRouter, Depends
-
-
-from src.api import deps
-from src.models.users import User
-from src.schemes.users import CurrentUserProfile
+from typing import Optional
+from fastapi import APIRouter, Form, File, UploadFile
 
 
 router = APIRouter()
 
 
-@router.get("/@me", tags=["Пользователи"], response_model=CurrentUserProfile)
+@router.get("/@me", tags=["Пользователи"])
 async def get_current_user(
-    user: User = Depends(deps.get_current_user_by_access_token)
 ):   
-    return user
+    pass
 
 
 @router.patch("/@me", tags=["Пользователи"])
-async def change_current_user_profile():
-    pass
-
-
-@router.get("/@me/reviews", tags=["Пользователи"])
-async def get_current_user_reviews():
-    pass
-
-
-@router.get("/@me/activity", tags=["Пользователи"])
-async def get_current_user_activity():
+async def change_current_user_profile(
+    username: Optional[str] = Form(None),
+    avatar: Optional[UploadFile] = File(None)
+):
     pass
 
 
 @router.get("/{user_id}", tags=["Пользователи"])
-async def get_user_profile(user_id: int):
+async def get_user_profile(
+    user_id: int
+):
     pass
 
 
-@router.get("/{user_id}/reviews", tags=["Пользователи"])
-async def get_user_reviews(user_id: int):
+@router.get("/@me/activities", tags=["Активность"])
+async def get_current_user_activities(
+    limit: int,
+    offset: int
+):
     pass
 
 
-@router.get("/{user_id}/activity", tags=["Пользователи"])
-async def get_user_activity(user_id: int):
+@router.get("/{user_id}/activities", tags=["Активность"])
+async def get_user_activity(
+    user_id: int,
+    limit: int,
+    offset: int
+):
+    """
+        Получение списка активностей пользователя    
+    """
     pass
 

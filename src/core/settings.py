@@ -142,7 +142,5 @@ class Settings:
     redis: RedisSettings = RedisSettings()
     logging: LoggingSettings = LoggingSettings()
 
-    def __init__(self) -> None:
-        print("settings init")
 
 settings = Settings()
