@@ -15,3 +15,7 @@ class ActivityStates(str, Enum):
     PLANNED = "planned"
     ACTIVE = "active"
     COMPLETE = "completed"
+
+
+class ValidationTypes(str, Enum):
+    pass

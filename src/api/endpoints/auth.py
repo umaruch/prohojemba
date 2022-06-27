@@ -1,3 +1,4 @@
+from urllib.request import Request
 from fastapi import APIRouter, Form, Depends, status
 from fastapi.responses import Response
 from pydantic import EmailStr
@@ -15,9 +16,11 @@ router = APIRouter()
 
 @router.post("/signin", tags=["Авторизация"])
 async def signin(
-    form: auth.SigninForm = Depends(auth.SigninForm)
+    form: auth.SigninForm = Depends(auth.SigninForm),
+    db: AsyncSession = Depends(deps.get_db_session),
+    redis: Redis = Depends(deps.get_redis_connection)
 ) -> None:
-    pass
+    await security.register_new_user(db, redis, form)
 
 
 @router.post("/token", tags=["Авторизация"])
@@ -26,7 +29,7 @@ async def token(
     db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    tokens_pair = await security.authenticate_user(db, form)
+    tokens_pair = await security.authenticate_user(db, redis, form)
     return tokens_pair
 
 
@@ -65,10 +68,11 @@ async def restore_user_password(
 @router.post("/validate", tags=["Авторизация"], status_code=status.HTTP_204_NO_CONTENT)
 async def validate_email(
     email: EmailStr = Form(...),
-    validation_type: str = Form(...) 
+    validation_type: str = Form(...),
+    redis: Redis = Depends(deps.get_redis_connection)
 ):
     """
         Запрос на валидацию некоторых действий пользователя, 
         путем отправки кода на указанную почту
     """
-    pass
+    code = await security.generate_validation_code(redis, email)

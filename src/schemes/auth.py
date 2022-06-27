@@ -2,6 +2,9 @@ from fastapi import Form
 from pydantic import BaseModel, EmailStr
 
 
+from src.core.constants import ValidationTypes
+
+
 class SigninForm:
     def __init__(self,
         email: EmailStr = Form(...),

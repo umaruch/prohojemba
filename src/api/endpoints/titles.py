@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Form, UploadFile, File
+from fastapi import APIRouter, Form, UploadFile, File, Request
 
 
 from src.core.constants import TitleTypes, ActivityStates
@@ -14,7 +14,6 @@ async def get_titles(type: str, offset: int, limit: int) -> None:
     """
         Получение списка общей информации о тайтлах
     """
-    pass
 
 
 @router.post("", tags=["Тайтлы"])
@@ -33,11 +32,12 @@ async def create_title(
 
 
 @router.get("/{title_id}", tags=["Тайтлы"])
-async def get_title(title_id: int):
+async def get_title(title_id: int, req: Request):
     """
         Получение полной информации о тайтле
     """
-    pass
+    print(req.headers["user-agent"])
+    print(req.headers["sec-ch-ua-platform"])
 
 
 @router.patch("/{title_id}", tags=["Тайтлы"])

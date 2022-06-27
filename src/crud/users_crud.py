@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, insert
 
 
 from src.models.users import User
@@ -21,8 +21,11 @@ async def filter(db: AsyncSession) -> List[User]:
     pass
 
 
-async def create(db: AsyncSession):
-    pass
+async def create(db: AsyncSession) -> User:
+    user = User()
+    db.add(user)
+    db.flush()
+    return user
 
 
 async def update(db: AsyncSession):
