@@ -1,2 +1,4 @@
-def create_user() -> None:
+async def create_user() -> None:
     pass
+
+

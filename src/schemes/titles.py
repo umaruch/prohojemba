@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from src.core.constants import TitleTypes
 
 
-class CreateTitleForm(BaseModel):
+class CreateTitleModel(BaseModel):
     """
         Класс для валидации полей формы создания файла
     """
@@ -16,7 +16,7 @@ class CreateTitleForm(BaseModel):
     year: str
 
 
-class PatchTitleForm(BaseModel):
+class PatchTitleModel(BaseModel):
     """
         Класс для валидации полей формы редактирования тайтла
     """

@@ -1,6 +1,13 @@
-from fastapi import APIRouter, Form, status
+from fastapi import APIRouter, Form, Depends, status
 from fastapi.responses import Response
 from pydantic import EmailStr
+from sqlalchemy.ext.asyncio import AsyncSession
+from aioredis import Redis
+from fastapi.security import OAuth2PasswordRequestForm
+
+from src.api import deps
+from src.schemes import auth
+from src.services import security
 
 
 router = APIRouter()
@@ -8,28 +15,19 @@ router = APIRouter()
 
 @router.post("/signin", tags=["Авторизация"])
 async def signin(
-    email: EmailStr = Form(...),
-    password: str = Form(...),
-    username: str = Form(...),
-    code: str = Form(...)
+    form: auth.SigninForm = Depends(auth.SigninForm)
 ) -> None:
-    """
-        Регистрация нового пользователя
-        1) Проверка кода негистрации
-        2) Создание хэша пароля
-        3) Создание записи о новом пользователе
-        4) Генерация токенов доступа
-        5)
-    """
     pass
 
 
 @router.post("/token", tags=["Авторизация"])
 async def token(
-    email: EmailStr = Form(...),
-    password: str = Form(...)
+    form: auth.LoginForm = Depends(auth.LoginForm),
+    db: AsyncSession = Depends(deps.get_db_session),
+    redis: Redis = Depends(deps.get_redis_connection)
 ):
-    pass
+    tokens_pair = await security.authenticate_user(db, form)
+    return tokens_pair
 
 
 @router.post("/token/update", tags=["Авторизация"])

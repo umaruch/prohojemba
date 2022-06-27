@@ -1,4 +1,27 @@
-from pydantic import BaseModel
+from fastapi import Form
+from pydantic import BaseModel, EmailStr
+
+
+class SigninForm:
+    def __init__(self,
+        email: EmailStr = Form(...),
+        password: str = Form(...),
+        username: str = Form(...),
+        code: str = Form(...)
+    ) -> None:
+        self.email = email
+        self.pasword = password
+        self.username = username
+        self.code = code
+
+
+class LoginForm:
+    def __init__(self,
+        email: EmailStr = Form(...),
+        password: str = Form(...)
+    ) -> None:
+        self.email = email
+        self.password = password
 
 
 class TokensPair(BaseModel):

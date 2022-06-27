@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class TitleTypes(Enum):
+class TitleTypes(str, Enum):
     GAME = "games"
     MOVIE = "movies"
     SERIES = "series"
@@ -11,7 +11,7 @@ class TitleTypes(Enum):
     MANGA = "mangas"
 
 
-class ActivityStates(Enum):
+class ActivityStates(str, Enum):
     PLANNED = "planned"
     ACTIVE = "active"
     COMPLETE = "completed"

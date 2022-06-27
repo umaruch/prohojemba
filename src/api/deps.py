@@ -1,6 +1,7 @@
 from typing import AsyncGenerator
-from fastapi import Request, Depends
+from fastapi import Request, Depends, status
 from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.exceptions import HTTPException
 from aioredis import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,15 +30,18 @@ async def get_redis_connection(req: Request) -> AsyncGenerator[Redis, None]:
         await redis.close()
     
 
-async def get_current_user_by_access_token(
+async def get_current_user(
     db: AsyncSession = Depends(get_db_session),
     credentials: HTTPAuthorizationCredentials = Depends(security.bearer)
 ) -> User:
     """
         TODO Получение информации о пользователе из access токена
     """
-    # token = credentials.credentials
-    # user_id = security.decode_access_token(token)
-    # user = await users_crud.get_user_by_id(db, user_id)
-    # return user
-    return credentials
+    try:
+        token = credentials.credentials
+    except AttributeError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Bearer token is missing"
+        )
+    return security.get_user_by_access_token(db, token)
