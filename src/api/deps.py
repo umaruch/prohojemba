@@ -4,6 +4,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.exceptions import HTTPException
 from aioredis import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import InterfaceError
 
 from src.models.users import User
 from src.services import security
@@ -13,6 +14,11 @@ async def get_db_session(req: Request) -> AsyncSession:
     db: AsyncSession = req.app.state.dbpool()
     try:
         yield db
+    except (InterfaceError, ConnectionRefusedError):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка подключения к базе данных")
+
     finally:
         await db.close()
 

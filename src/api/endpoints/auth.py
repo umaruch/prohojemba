@@ -1,5 +1,4 @@
-from urllib.request import Request
-from fastapi import APIRouter, Form, Depends, status
+from fastapi import APIRouter, Form, Depends, BackgroundTasks, status
 from fastapi.responses import Response
 from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from src.api import deps
 from src.schemes import auth
-from src.services import security
+from src.services import security, email
 
 
 router = APIRouter()
@@ -20,7 +19,7 @@ async def signin(
     db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ) -> None:
-    await security.register_new_user(db, redis, form)
+    return await security.register_new_user(db, redis, form)
 
 
 @router.post("/token", tags=["Авторизация"])
@@ -29,13 +28,13 @@ async def token(
     db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    tokens_pair = await security.authenticate_user(db, redis, form)
-    return tokens_pair
+    return await security.authenticate_user(db, redis, form)
 
 
 @router.post("/token/update", tags=["Авторизация"])
 async def update_tokens_pair(
-    refresh_token: str = Form(...)
+    refresh_token: str = Form(...),
+    redis: Redis = Depends(deps.get_redis_connection)
 ):
     pass
 
@@ -65,14 +64,16 @@ async def restore_user_password(
     pass
 
 
-@router.post("/validate", tags=["Авторизация"], status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/validate", tags=["Авторизация"], 
+    status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 async def validate_email(
-    email: EmailStr = Form(...),
-    validation_type: str = Form(...),
+    tasks: BackgroundTasks,
+    form: auth.ValidationRequestForm = Depends(auth.ValidationRequestForm),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
     """
         Запрос на валидацию некоторых действий пользователя, 
         путем отправки кода на указанную почту
     """
-    code = await security.generate_validation_code(redis, email)
+    code = await security.generate_validation_code(redis, form.email)
+    tasks.add_task(email.send_validation_email, form.email, code)

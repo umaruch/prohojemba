@@ -18,4 +18,6 @@ class ActivityStates(str, Enum):
 
 
 class ValidationTypes(str, Enum):
-    pass
+    REGISTRATION = "signin"
+    RESTORE_PASSWORD = "restore_password"
+    CHANGE_EMAIL = "change_email"

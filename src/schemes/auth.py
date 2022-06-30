@@ -13,7 +13,7 @@ class SigninForm:
         code: str = Form(...)
     ) -> None:
         self.email = email
-        self.pasword = password
+        self.password = password
         self.username = username
         self.code = code
 
@@ -25,6 +25,15 @@ class LoginForm:
     ) -> None:
         self.email = email
         self.password = password
+
+
+class ValidationRequestForm:
+    def __init__(self,
+        email: EmailStr = Form(...),
+        validation_type: ValidationTypes = Form(...)
+    ) -> None:
+        self.email = email
+        self.validation_type = validation_type
 
 
 class TokensPair(BaseModel):
