@@ -36,10 +36,9 @@ async def get_redis_connection(req: Request) -> AsyncGenerator[Redis, None]:
         await redis.close()
     
 
-async def get_current_user(
-    db: AsyncSession = Depends(get_db_session),
+async def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security.bearer)
-) -> User:
+) -> int:
     """
         TODO Получение информации о пользователе из access токена
     """
@@ -48,6 +47,6 @@ async def get_current_user(
     except AttributeError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Bearer token is missing"
+            detail="Authentication required"
         )
-    return security.get_user_by_access_token(db, token)
+    return security.decode_access_token(token)

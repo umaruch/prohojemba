@@ -13,7 +13,7 @@ from src.services import security, email
 router = APIRouter()
 
 
-@router.post("/signin", tags=["Авторизация"])
+@router.post("/signin", tags=["Авторизация"], response_model=auth.TokensPair)
 async def signin(
     form: auth.SigninForm = Depends(auth.SigninForm),
     db: AsyncSession = Depends(deps.get_db_session),
@@ -22,7 +22,7 @@ async def signin(
     return await security.register_new_user(db, redis, form)
 
 
-@router.post("/token", tags=["Авторизация"])
+@router.post("/token", tags=["Авторизация"], response_model=auth.TokensPair)
 async def token(
     form: auth.LoginForm = Depends(auth.LoginForm),
     db: AsyncSession = Depends(deps.get_db_session),
@@ -31,12 +31,12 @@ async def token(
     return await security.authenticate_user(db, redis, form)
 
 
-@router.post("/token/update", tags=["Авторизация"])
+@router.post("/token/update", tags=["Авторизация"], response_model=auth.TokensPair)
 async def update_tokens_pair(
     refresh_token: str = Form(...),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    pass
+    return await security.update_tokens_pair(redis, refresh_token)
 
 
 @router.post("/email/change", tags=["Авторизация"], status_code=status.HTTP_204_NO_CONTENT)

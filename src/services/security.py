@@ -38,7 +38,7 @@ def _encode_access_token(user_id: int) -> str:
     return jwt.encode(payload, key=settings.application.SECRET_KEY, algorithm="HS256")
 
 
-def _decode_access_token(token: str) -> int:
+def decode_access_token(token: str) -> int:
     pass
 
 
@@ -51,8 +51,14 @@ async def _encode_refresh_token(redis: Redis, user_id: int) -> str:
     return token
 
 
-def _decode_refresh_token(redis: Redis, token: str) -> str:
-    pass
+async def _decode_refresh_token(redis: Redis, token: str) -> int:
+    try:
+        return int(await redis.get(token))
+    except TypeError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect refresh_token"
+        )
 
 
 async def register_new_user(db: AsyncSession, redis: Redis, form: auth.SigninForm) -> auth.TokensPair:
@@ -85,23 +91,12 @@ async def authenticate_user(db: AsyncSession, redis: Redis, form: auth.LoginForm
     )
 
 
-async def get_user_by_access_token(db: AsyncSession, token: str) -> User:
-    """
-        Ты мне токен, я тебе пользователя
-    """
-    user = await users_crud.get(db, _decode_access_token(token))
-    if user:
-        return user
-
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="User by access token not found"
-    )
-
-
 async def update_tokens_pair(redis: Redis, token: str) -> auth.TokensPair:
-    pass
-
+    user_id = await _decode_refresh_token(redis, token)
+    return auth.TokensPair(
+            access_token=_encode_access_token(user_id=user_id),
+            refresh_token= await _encode_refresh_token(redis=redis, user_id=user_id))
+    
 
 async def generate_validation_code(redis: Redis, email: str) -> str:
     code = secrets.token_hex(3)

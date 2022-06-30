@@ -11,4 +11,3 @@ class User(Base):
     encoded_password = Column(String)
     username = Column(String, unique=True)
     avatar_uri = Column(String, nullable=True)
-

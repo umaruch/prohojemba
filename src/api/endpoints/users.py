@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, Form, File, UploadFile
 
 
 from src.api import deps
-from src.models.users import User
 
 
 router = APIRouter()
@@ -11,7 +10,7 @@ router = APIRouter()
 
 @router.get("/@me", tags=["Пользователи"])
 async def get_current_user(
-    current_user: User = Depends(deps.get_current_user)
+    current_user: int = Depends(deps.get_current_user_id)
 ):   
     pass
 
