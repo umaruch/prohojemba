@@ -39,29 +39,34 @@ async def update_tokens_pair(
     return await security.update_tokens_pair(redis, refresh_token)
 
 
-@router.post("/email/change", tags=["Авторизация"], status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/email/change", tags=["Авторизация"], 
+    status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 async def change_user_email(
-    new_email: EmailStr = Form(...),
-    password: str = Form(...),
-    code: str = Form(...)
+    current_user_id: int = Depends(deps.get_current_user_id),
+    form: auth.UpdateEmailForm = Depends(auth.UpdateEmailForm),
+    db: AsyncSession = Depends(deps.get_db_session),
+    redis: Redis = Depends(deps.get_redis_connection)
 ):
-    pass
+    await security.update_user_email(db, redis, current_user_id, form)
 
 
-@router.post("/password/change", tags=["Авторизация"], status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/password/change", tags=["Авторизация"], 
+    status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 async def change_user_password(
-    current_password: str = Form(...),
-    new_password: str = Form(...)
+    current_user_id: int = Depends(deps.get_current_user_id),
+    form: auth.UpdatePasswordForm = Depends(auth.UpdatePasswordForm),
+    db: AsyncSession = Depends(deps.get_db_session)
 ):
-    pass
+    await security.update_user_password(db, current_user_id, form)
 
 
 @router.post("/password/restore", tags=["Авторизация"], status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 async def restore_user_password(
-    email: EmailStr = Form(...),
-    code: str = Form(...)
+    form: auth.RestorePasswordForm = Depends(auth.RestorePasswordForm),
+    db: AsyncSession = Depends(deps.get_db_session),
+    redis: Redis = Depends(deps.get_redis_connection)
 ):
-    pass
+    await security.restore_user_password(db, redis, form)
 
 
 @router.post("/validate", tags=["Авторизация"], 

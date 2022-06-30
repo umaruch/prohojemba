@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+import email
 import secrets 
 import jwt
 from fastapi import status
@@ -11,7 +12,6 @@ from passlib.context import CryptContext
 
 from src.core.settings import settings
 from src.crud import users_crud
-from src.models.users import User
 from src.schemes import auth
 
 
@@ -47,7 +47,7 @@ async def _encode_refresh_token(redis: Redis, user_id: int) -> str:
     if await redis.get(token):
         return await _encode_refresh_token(redis, user_id)
     
-    await redis.set(token, user_id, ex=60)
+    await redis.set(token, user_id, ex=5*60)
     return token
 
 
@@ -62,20 +62,20 @@ async def _decode_refresh_token(redis: Redis, token: str) -> int:
 
 
 async def register_new_user(db: AsyncSession, redis: Redis, form: auth.SigninForm) -> auth.TokensPair:
-    if not await _validate_code(redis, form.email, form.code):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Неверный код валидации"
+    if await _validate_code(redis, form.email, form.code):
+        user_id = await users_crud.create(db, 
+            email=form.email, username=form.username,
+            encoded_password=_get_password_hash(form.password)
         )
-    
-    user = await users_crud.create(db, 
-        email=form.email, username=form.username,
-        encoded_password=_get_password_hash(form.password)
-    )
 
-    return auth.TokensPair(
-            access_token=_encode_access_token(user_id=user.id),
-            refresh_token= await _encode_refresh_token(redis=redis, user_id=user.id))
+        return auth.TokensPair(
+                access_token=_encode_access_token(user_id=user_id),
+                refresh_token= await _encode_refresh_token(redis=redis, user_id=user_id))
+
+    raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Incorrect validation code"
+        )
 
 
 async def authenticate_user(db: AsyncSession, redis: Redis, form: auth.LoginForm) -> auth.TokensPair:
@@ -97,6 +97,39 @@ async def update_tokens_pair(redis: Redis, token: str) -> auth.TokensPair:
             access_token=_encode_access_token(user_id=user_id),
             refresh_token= await _encode_refresh_token(redis=redis, user_id=user_id))
     
+
+async def update_user_email(db: AsyncSession, redis: Redis, user_id: int, form: auth.UpdateEmailForm) -> None:
+    if await _validate_code(redis, form.email, form.code):
+        await users_crud.update(db, user_id, email=form.new_email)
+
+    raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Incorrect validation code"
+        )
+
+
+async def update_user_password(db: AsyncSession, user_id: int, form: auth.UpdatePasswordForm) -> None:
+    user = await users_crud.get_by_id(db, user_id)
+    if user and _verify_password(form.current_password, user.encoded_password):
+        await users_crud.update(db, user_id, 
+            encoded_password=_get_password_hash(form.new_password))
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect password")
+
+
+async def restore_user_password(db: AsyncSession, redis: Redis, form: auth.RestorePasswordForm) -> None:
+    if _validate_code(redis, form.email, form.code):
+        user = await users_crud.get_by_email(db, form.email)
+        await users_crud.update(db, user.id,
+            encoded_password=_get_password_hash(form.new_password))
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail="Incorrect validation code"
+    )
+
 
 async def generate_validation_code(redis: Redis, email: str) -> str:
     code = secrets.token_hex(3)

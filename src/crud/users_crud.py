@@ -1,8 +1,8 @@
-from typing import List, Optional
+from typing import Any, List, Optional, Dict
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, update as _update, delete as _delete
 from fastapi import status
 from fastapi.exceptions import HTTPException
 
@@ -24,32 +24,35 @@ async def filter(db: AsyncSession) -> List[User]:
     pass
 
 
-async def create(db: AsyncSession, **columns) -> User:
+async def create(db: AsyncSession, **columns: Any) -> int:
     try:
         user = User(**columns)
         db.add(user)
         await db.commit()
-        return user
+        return user.id
     except IntegrityError as err:
-        await db.rollback()
-        err_msg = err.args[0]
-        if "duplicate key value violates unique constraint \"users_username_key\"" in err_msg:
-            message = "Пользователь с таким именем уже существует"
-        elif "duplicate key value violates unique constraint \"ix_users_email\"" in err_msg:
-            message = "Пользователь с таким email уже существует"
-        else:
-            print(err)
-            message = "Неизвестная ошибка"
-
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=message
-        )
+        raise await _handle_users_error(db, err)
 
 
-async def update(db: AsyncSession):
-    pass
+async def update(db: AsyncSession, id: int, **columns: Any) -> None:
+    try:
+        await db.execute(_update(User).where(User.id==id).values(**columns).returning(None))
+    except IntegrityError as err:
+        raise await _handle_users_error(db, err)
 
 
-async def delete(db: AsyncSession):
-    pass
+async def _handle_users_error(db: AsyncSession, err: Exception) -> HTTPException:
+    await db.rollback()
+    err_msg = err.args[0]
+    if "duplicate key value violates unique constraint \"users_username_key\"" in err_msg:
+        message = "Пользователь с таким именем уже существует"
+    elif "duplicate key value violates unique constraint \"ix_users_email\"" in err_msg:
+        message = "Пользователь с таким email уже существует"
+    else:
+        print(err)
+        message = "Неизвестная ошибка"
+
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=message
+    )

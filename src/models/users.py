@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String
+from email.policy import default
+from sqlalchemy import Column, Integer, String, Boolean
 
 
 from src.models.base import Base
