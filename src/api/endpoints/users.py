@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("/@me", tags=["Пользователи"])
 async def get_current_user(
-    current_user: int = Depends(deps.get_current_user_id)
+    current_user_id: int = Depends(deps.get_current_user_id)
 ):   
     pass
 

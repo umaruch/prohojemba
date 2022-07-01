@@ -39,7 +39,17 @@ def _encode_access_token(user_id: int) -> str:
 
 
 def decode_access_token(token: str) -> int:
-    pass
+    try:
+        payload = jwt.decode(token, key=settings.application.SECRET_KEY, algorithms=["HS256"])
+        return int(payload["sub"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Token")
 
 
 async def _encode_refresh_token(redis: Redis, user_id: int) -> str:
@@ -99,8 +109,9 @@ async def update_tokens_pair(redis: Redis, token: str) -> auth.TokensPair:
     
 
 async def update_user_email(db: AsyncSession, redis: Redis, user_id: int, form: auth.UpdateEmailForm) -> None:
-    if await _validate_code(redis, form.email, form.code):
+    if await _validate_code(redis, form.new_email, form.code):
         await users_crud.update(db, user_id, email=form.new_email)
+        return
 
     raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -110,9 +121,11 @@ async def update_user_email(db: AsyncSession, redis: Redis, user_id: int, form: 
 
 async def update_user_password(db: AsyncSession, user_id: int, form: auth.UpdatePasswordForm) -> None:
     user = await users_crud.get_by_id(db, user_id)
+    print("current user", user)
     if user and _verify_password(form.current_password, user.encoded_password):
         await users_crud.update(db, user_id, 
             encoded_password=_get_password_hash(form.new_password))
+        return
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -124,6 +137,7 @@ async def restore_user_password(db: AsyncSession, redis: Redis, form: auth.Resto
         user = await users_crud.get_by_email(db, form.email)
         await users_crud.update(db, user.id,
             encoded_password=_get_password_hash(form.new_password))
+        return
 
     raise HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

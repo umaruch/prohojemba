@@ -12,7 +12,7 @@ from src.models.users import User
 
 async def get_by_id(db: AsyncSession, id: int) -> Optional[User]:
     result: Result = await db.execute(select(User).where(User.id==id))
-    return result.first()
+    return result.scalars().first()
 
 
 async def get_by_email(db: AsyncSession, email: str) -> Optional[User]:
@@ -37,6 +37,7 @@ async def create(db: AsyncSession, **columns: Any) -> int:
 async def update(db: AsyncSession, id: int, **columns: Any) -> None:
     try:
         await db.execute(_update(User).where(User.id==id).values(**columns).returning(None))
+        await db.commit()
     except IntegrityError as err:
         raise await _handle_users_error(db, err)
 
