@@ -1,45 +1,59 @@
-from typing import Optional, Dict, Union
+from typing import Any, List, Optional, Dict
+from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
-from sqlalchemy.orm import selectinload
-from fastapi.encoders import jsonable_encoder
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select, insert, update as _update, delete as _delete
+from fastapi import status
+from fastapi.exceptions import HTTPException
+
 
 from src.models.users import User
-from src.models.profiles import Profile
-
-async def create_user(db: AsyncSession, email: str, password_hash: str, username: str) -> int:
-    user = User(email=email, password_hash=password_hash, profile=Profile(username=username))
-    db.add(user)
-    await db.commit()
-    print(user)
-    return user.id
 
 
+async def get_by_id(db: AsyncSession, id: int) -> Optional[User]:
+    result: Result = await db.execute(select(User).where(User.id==id))
+    return result.scalars().first()
 
-async def get_user_by_id(db: AsyncSession, user_id: int, with_profile: bool = False) -> User:
-    if with_profile:
-        sql = select(User).where(User.id==user_id).options(selectinload(User.profile))
+
+async def get_by_email(db: AsyncSession, email: str) -> Optional[User]:
+    result: Result = await db.execute(select(User).where(User.email==email))
+    return result.scalars().first()
+
+
+async def filter(db: AsyncSession) -> List[User]:
+    pass
+
+
+async def create(db: AsyncSession, **columns: Any) -> int:
+    try:
+        user = User(**columns)
+        db.add(user)
+        await db.commit()
+        return user.id
+    except IntegrityError as err:
+        raise await _handle_users_error(db, err)
+
+
+async def update(db: AsyncSession, id: int, **columns: Any) -> None:
+    try:
+        await db.execute(_update(User).where(User.id==id).values(**columns).returning(None))
+        await db.commit()
+    except IntegrityError as err:
+        raise await _handle_users_error(db, err)
+
+
+async def _handle_users_error(db: AsyncSession, err: Exception) -> HTTPException:
+    await db.rollback()
+    err_msg = err.args[0]
+    if "duplicate key value violates unique constraint \"users_username_key\"" in err_msg:
+        message = "Пользователь с таким именем уже существует"
+    elif "duplicate key value violates unique constraint \"ix_users_email\"" in err_msg:
+        message = "Пользователь с таким email уже существует"
     else:
-        sql = select(User).where(User.id==user_id)
+        print(err)
+        message = "Неизвестная ошибка"
 
-    return (await db.execute(sql)).scalars().first()
-
-
-async def get_user_by_email(db: AsyncSession, email: str) -> User:
-    sql = select(User).where(User.email==email)
-    return (await db.execute(sql)).scalars().first()
-
-
-async def get_profile_by_username(db: AsyncSession, username: str) -> Optional[Profile]:
-    sql = select(Profile).where(Profile.username==username)
-    return (await db.execute(sql)).scalars().first()
-
-
-async def update_user(db: AsyncSession, user: Union[User, int], update_data: Dict) -> None:
-    if isinstance(user, int):
-        sql = update(User).where(User.id==user).values(**update_data)
-    else:
-        sql = update(User).where(User.id==user.id).values(**update_data)
-
-    await db.execute(sql)
-    await db.commit()  
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=message
+    )

@@ -15,10 +15,7 @@ ENV_PATH = BASE_DIR / ".env"
 class Base(BaseSettings):
     @property
     def kwargs(self):
-        """
-            Преобразование атрибутов в словарь аргументов
-        """
-        pass
+        raise NotImplementedError
 
     class Config:
         env_file = ENV_PATH
@@ -96,6 +93,8 @@ class RedisSettings(Base):
     USER: str = Field(None, env="REDIS_USER")
     PASS: str = Field(None, env="REDIS_PASS")
     DB: int = Field(1, env="REDIS_DB")  
+    MAX_CONNECTIONS = 10 # Максимальное количество соединений в пуле
+
 
     URL: Optional[str]
 
@@ -112,7 +111,8 @@ class RedisSettings(Base):
     @property
     def kwargs(self):
         return {
-            "url": self.URL
+            "url": self.URL,
+            "max_connections": self.MAX_CONNECTIONS
         }
 
 
@@ -142,7 +142,5 @@ class Settings:
     redis: RedisSettings = RedisSettings()
     logging: LoggingSettings = LoggingSettings()
 
-    def __init__(self) -> None:
-        print("settings init")
 
 settings = Settings()

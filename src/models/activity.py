@@ -1,20 +1,16 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, ForeignKey, String, Date, UniqueConstraint
 
 from src.models.base import Base
 
 
 class Activity(Base):
-    __tablename__ = "activity"
-    id = Column("id", Integer, primary_key=True, autoincrement=True)
-    user_id = Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    user = relationship("User", uselist=False)
+    __tablename__ = "activities"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="cascade"))
+    title_id = Column(Integer, ForeignKey("titles.id", ondelete="cascade"))
+    state = Column(String)
+    updated_at = Column(Date)
 
-    title_id = Column("title_id", Integer, ForeignKey("titles.id", ondelete="CASCADE"))
-    title = relationship("Title", uselist=False)
-
-    state = Column("state", String(16))
-    updated_at = Column("updated_at", DateTime)
-
-    # Коомбинация user и title должна быть уникальной
-    __table_args__ = (UniqueConstraint("user_id", "title_id", name="activity_user_title_uc"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "title_id", name="u_user_title"),
+    )

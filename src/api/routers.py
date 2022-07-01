@@ -1,9 +1,8 @@
-from src.api.endpoints import auth, users, titles, reviews, activity
+from src.api.endpoints import auth, users, titles, activities
 
 routers = {
     "/auth": auth.router,
     "/users": users.router,
     "/titles": titles.router,
-    "/reviews": reviews.router,
-    "/activity": activity.router
+    "/activities": activities.router
 }

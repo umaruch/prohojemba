@@ -1,105 +1,162 @@
-from typing import Dict, Any, Optional, Tuple
 from datetime import timedelta, datetime
-import random
+import email
+import secrets 
 import jwt
-import uuid
+from fastapi import status
 from fastapi.exceptions import HTTPException
 from fastapi.security import HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
+from aioredis import Redis
 from passlib.context import CryptContext
 
 
 from src.core.settings import settings
-
-
-SECRET_KEY = settings.application.SECRET_KEY
-ACCESS_TOKEN_LIFETIME = timedelta(seconds=settings.application.ACCESS_TOKEN_EXPIRE_SECONDS)
-REFRESH_TOKEN_LIFETIME = timedelta(seconds=settings.application.REFRESH_TOKEN_EXPIRE_SECONDS)
+from src.crud import users_crud
+from src.schemes import auth
 
 
 pwd_context = CryptContext(schemes=["bcrypt"])
 bearer = HTTPBearer()
 
 
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+def _get_password_hash(raw_password: str) -> str:
+    return pwd_context.hash(raw_password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def _verify_password(raw_password, hashed_password) -> bool:
+    return pwd_context.verify(raw_password, hashed_password)
 
 
-def get_validation_code() -> str:
-    return str(random.randrange(111111, 999999))
-
-
-def _encode_token(payload: Dict[str, Any]) -> str:
-    """
-    Генерация токена пользователя.
-    scope может быть access_token|refresh_token
-    """
-    return jwt.encode(
-        payload=payload,
-        key=SECRET_KEY,
-        algorithm="HS256"
-    )
-
-
-def _create_session_uuid() -> str:
-    return uuid.uuid4().hex
-
-
-def encode_access_token(user_id: int) -> str:
+def _encode_access_token(user_id: int) -> str:
+    created_at = datetime.utcnow()
     payload = {
-        "user_id": user_id,
+        "exp": created_at + timedelta(minutes=30),
+        "iat": created_at,
         "scope": "access_token",
-        "exp": datetime.utcnow() + ACCESS_TOKEN_LIFETIME 
+        "sub": user_id
     }
-    return _encode_token(payload)
-
-
-def encode_refresh_token(user_id: int, session_uuid: Optional[str] = None) -> Tuple[str, str]:
-    """
-    return: session_uuid, refresh_token
-    """
-    if not session_uuid:
-        session_uuid = _create_session_uuid()
-
-    payload = {
-        "user_id": user_id,
-        "session_uuid": session_uuid,
-        "scope": "refresh_token",
-        "exp": datetime.utcnow() + REFRESH_TOKEN_LIFETIME 
-    }
-    return session_uuid, _encode_token(payload)
- 
-
-def _decode_user_token(token: str, scope: str) -> Dict[str, str]:
-    try:
-        payload = jwt.decode(token, key=SECRET_KEY, algorithms=['HS256'])
-        if payload["scope"] == scope:
-            return payload
-        raise HTTPException(status_code=401, detail='Token scope invalid')
-
-    # Вышел срок действия токена
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail='Token expired')
-    
-    # Скорее всего поддельный токен
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail='Invalid token')
+    return jwt.encode(payload, key=settings.application.SECRET_KEY, algorithm="HS256")
 
 
 def decode_access_token(token: str) -> int:
-    payload = _decode_user_token(token, "access_token")
-    return int(payload["user_id"])
+    try:
+        payload = jwt.decode(token, key=settings.application.SECRET_KEY, algorithms=["HS256"])
+        return int(payload["sub"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Token")
 
 
-def decode_refresh_token(token: str) -> Tuple[int, str]:
-    """
-    return: session_uuid, user_id
-    """
-    payload = _decode_user_token(token, "refresh_token")
-    return payload["session_uuid"], int(payload["user_id"])
+async def _encode_refresh_token(redis: Redis, user_id: int) -> str:
+    token = secrets.token_hex(64)
+    if await redis.get(token):
+        return await _encode_refresh_token(redis, user_id)
+    
+    await redis.set(token, user_id, ex=5*60)
+    return token
+
+
+async def _decode_refresh_token(redis: Redis, token: str) -> int:
+    try:
+        code = int(await redis.get(token))
+        await redis.delete(token)
+        return code
+    except TypeError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect refresh_token"
+        )
+
+
+async def register_new_user(db: AsyncSession, redis: Redis, form: auth.SigninForm) -> auth.TokensPair:
+    if await _validate_code(redis, form.email, form.code):
+        user_id = await users_crud.create(db, 
+            email=form.email, username=form.username,
+            encoded_password=_get_password_hash(form.password)
+        )
+
+        return auth.TokensPair(
+                access_token=_encode_access_token(user_id=user_id),
+                refresh_token= await _encode_refresh_token(redis=redis, user_id=user_id))
+
+    raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Incorrect validation code"
+        )
+
+
+async def authenticate_user(db: AsyncSession, redis: Redis, form: auth.LoginForm) -> auth.TokensPair:
+    user = await users_crud.get_by_email(db, form.email)
+    if user and _verify_password(form.password, user.encoded_password):
+        return auth.TokensPair(
+            access_token=_encode_access_token(user_id=user.id),
+            refresh_token= await _encode_refresh_token(redis=redis, user_id=user.id))
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect email or password"
+    )
+
+
+async def update_tokens_pair(redis: Redis, token: str) -> auth.TokensPair:
+    user_id = await _decode_refresh_token(redis, token)
+    return auth.TokensPair(
+            access_token=_encode_access_token(user_id=user_id),
+            refresh_token= await _encode_refresh_token(redis=redis, user_id=user_id))
     
 
-    
+async def update_user_email(db: AsyncSession, redis: Redis, user_id: int, form: auth.UpdateEmailForm) -> None:
+    if await _validate_code(redis, form.new_email, form.code):
+        await users_crud.update(db, user_id, email=form.new_email)
+        return
+
+    raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Incorrect validation code"
+        )
+
+
+async def update_user_password(db: AsyncSession, user_id: int, form: auth.UpdatePasswordForm) -> None:
+    user = await users_crud.get_by_id(db, user_id)
+    print("current user", user)
+    if user and _verify_password(form.current_password, user.encoded_password):
+        await users_crud.update(db, user_id, 
+            encoded_password=_get_password_hash(form.new_password))
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect password")
+
+
+async def restore_user_password(db: AsyncSession, redis: Redis, form: auth.RestorePasswordForm) -> None:
+    if _validate_code(redis, form.email, form.code):
+        user = await users_crud.get_by_email(db, form.email)
+        await users_crud.update(db, user.id,
+            encoded_password=_get_password_hash(form.new_password))
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail="Incorrect validation code"
+    )
+
+
+async def generate_validation_code(redis: Redis, email: str) -> str:
+    code = secrets.token_hex(3)
+    await redis.set(email, code, ex=5*60)
+    return code
+
+
+async def _validate_code(redis: Redis, email: str, code: str) -> bool:
+    current_code = await redis.get(email)
+    if current_code and code == current_code.decode("utf-8"):
+        await redis.delete(email)
+        return True
+
+    return False

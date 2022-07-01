@@ -18,26 +18,19 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
+
+from src.core.settings import settings
 from src.models.base import Base
 from src.models.users import User
-from src.models.profiles import Profile
 from src.models.titles import Title
-from src.models.reviews import Review
 from src.models.activity import Activity
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-def get_database_url() -> str:
-    """
-        Получение ссылки на БД из настроек приложения 
-        и замена драйвера на синхронный
-    """
-    from src.core.settings import settings
-    url = settings.database.URL
-    return url.replace("postgresql+asyncpg", "postgresql")
 
 
 def run_migrations_offline():
@@ -52,7 +45,7 @@ def run_migrations_offline():
     script output.
 
     """
-    url = get_database_url()
+    url = settings.database.URL.replace("postgresql+asyncpg", "postgresql")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -72,7 +65,7 @@ def run_migrations_online():
 
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = get_database_url()
+    configuration["sqlalchemy.url"] = settings.database.URL.replace("postgresql+asyncpg", "postgresql")
 
     connectable = engine_from_config(
         configuration,
