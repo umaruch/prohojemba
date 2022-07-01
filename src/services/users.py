@@ -1,4 +1,4 @@
-async def create_user() -> None:
-    pass
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
+async def get_user_info(db: AsyncSession, )

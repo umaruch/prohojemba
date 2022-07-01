@@ -63,7 +63,9 @@ async def _encode_refresh_token(redis: Redis, user_id: int) -> str:
 
 async def _decode_refresh_token(redis: Redis, token: str) -> int:
     try:
-        return int(await redis.get(token))
+        code = int(await redis.get(token))
+        await redis.delete(token)
+        return code
     except TypeError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -154,6 +156,7 @@ async def generate_validation_code(redis: Redis, email: str) -> str:
 async def _validate_code(redis: Redis, email: str, code: str) -> bool:
     current_code = await redis.get(email)
     if current_code and code == current_code.decode("utf-8"):
+        await redis.delete(email)
         return True
 
     return False
