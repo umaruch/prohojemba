@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import InterfaceError
 
 from src.models.users import User
-from src.services import security
+from src.services import security_services
 
 
 async def get_db_session(req: Request) -> AsyncSession:
@@ -37,7 +37,7 @@ async def get_redis_connection(req: Request) -> AsyncGenerator[Redis, None]:
     
 
 async def get_current_user_id(
-    credentials: HTTPAuthorizationCredentials = Depends(security.bearer)
+    credentials: HTTPAuthorizationCredentials = Depends(security_services.bearer)
 ) -> int:
     """
         TODO Получение информации о пользователе из access токена
@@ -49,4 +49,4 @@ async def get_current_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required"
         )
-    return security.decode_access_token(token)
+    return security_services.decode_access_token(token)

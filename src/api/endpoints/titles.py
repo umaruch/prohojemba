@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.get("", tags=["Тайтлы"])
-async def get_titles(type: str, offset: int, limit: int) -> None:
+async def get_titles(type: TitleTypes, offset: int, limit: int) -> None:
     """
         Получение списка общей информации о тайтлах
     """
