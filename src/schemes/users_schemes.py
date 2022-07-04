@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 from fastapi import Form, UploadFile, File
 from pydantic import BaseModel, EmailStr
 
@@ -26,3 +26,8 @@ class PatchUserForm:
     ) -> None:
         self.username = username
         self.avatar = avatar
+
+    def fields(self) -> Dict:
+        return {
+            "username": self.username
+        }

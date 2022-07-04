@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from src.api import deps
 from src.schemes import auth
-from src.services import security, email
+from src.services import email, security_services
 
 
 router = APIRouter()
@@ -19,7 +19,7 @@ async def signin(
     db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ) -> None:
-    return await security.register_new_user(db, redis, form)
+    return await security_services.register_new_user(db, redis, form)
 
 
 @router.post("/token", tags=["Авторизация"], response_model=auth.TokensPair)
@@ -28,7 +28,7 @@ async def token(
     db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    return await security.authenticate_user(db, redis, form)
+    return await security_services.authenticate_user(db, redis, form)
 
 
 @router.post("/token/update", tags=["Авторизация"], response_model=auth.TokensPair)
@@ -36,7 +36,7 @@ async def update_tokens_pair(
     refresh_token: str = Form(...),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    return await security.update_tokens_pair(redis, refresh_token)
+    return await security_services.update_tokens_pair(redis, refresh_token)
 
 
 @router.post("/email/change", tags=["Авторизация"], 
@@ -47,7 +47,7 @@ async def change_user_email(
     db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    await security.update_user_email(db, redis, current_user_id, form)
+    await security_services.update_user_email(db, redis, current_user_id, form)
 
 
 @router.post("/password/change", tags=["Авторизация"], 
@@ -57,7 +57,7 @@ async def change_user_password(
     form: auth.UpdatePasswordForm = Depends(auth.UpdatePasswordForm),
     db: AsyncSession = Depends(deps.get_db_session)
 ):
-    await security.update_user_password(db, current_user_id, form)
+    await security_services.update_user_password(db, current_user_id, form)
 
 
 @router.post("/password/restore", tags=["Авторизация"], status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
@@ -66,7 +66,7 @@ async def restore_user_password(
     db: AsyncSession = Depends(deps.get_db_session),
     redis: Redis = Depends(deps.get_redis_connection)
 ):
-    await security.restore_user_password(db, redis, form)
+    await security_services.restore_user_password(db, redis, form)
 
 
 @router.post("/validate", tags=["Авторизация"], 
@@ -80,5 +80,5 @@ async def validate_email(
         Запрос на валидацию некоторых действий пользователя, 
         путем отправки кода на указанную почту
     """
-    code = await security.generate_validation_code(redis, form.email)
+    code = await security_services.generate_validation_code(redis, form.email)
     tasks.add_task(email.send_validation_email, form.email, code)

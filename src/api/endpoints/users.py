@@ -40,8 +40,9 @@ async def get_user_profile(
 
 @router.get("/@me/activities", tags=["Активность"])
 async def get_current_user_activities(
-    limit: int,
-    offset: int
+    current_user_id: int = Depends(deps.get_current_user_id),
+    limit: int = 20,
+    offset: int = 0
 ):
     pass
 
@@ -49,8 +50,9 @@ async def get_current_user_activities(
 @router.get("/{user_id}/activities", tags=["Активность"])
 async def get_user_activity(
     user_id: int,
-    limit: int,
-    offset: int
+    current_user_id: int = Depends(deps.get_current_user_id),
+    limit: int = 20,
+    offset: int = 0
 ):
     """
         Получение списка активностей пользователя    
