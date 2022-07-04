@@ -57,7 +57,6 @@ async def change_user_password(
     form: auth.UpdatePasswordForm = Depends(auth.UpdatePasswordForm),
     db: AsyncSession = Depends(deps.get_db_session)
 ):
-    print(current_user_id)
     await security.update_user_password(db, current_user_id, form)
 
 
