@@ -1,5 +1,4 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Form, File, UploadFile
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api import deps
@@ -25,7 +24,7 @@ async def change_current_user_profile(
     form: users_schemes.PatchUserForm = Depends(users_schemes.PatchUserForm),
     db: AsyncSession = Depends(deps.get_db_session)
 ):
-    pass
+    await users_services.update_user_info(db, current_user_id, form)
 
 
 @router.get("/{user_id}", tags=["Пользователи"])

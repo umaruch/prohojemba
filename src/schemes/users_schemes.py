@@ -3,19 +3,16 @@ from fastapi import Form, UploadFile, File
 from pydantic import BaseModel, EmailStr
 
 
-class BaseUser(BaseModel):
+from src.schemes.base import ORMModel
+
+
+class UserOutput(ORMModel):
     id: int
     username: str
     avatar_uri: Optional[str] = None
 
-    class Config:
-        orm_mode=True
 
-class UserOutput(BaseUser):
-    pass
-
-
-class CurrentUserOutput(BaseUser):
+class CurrentUserOutput(UserOutput):
     email: EmailStr
 
 

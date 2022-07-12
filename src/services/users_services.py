@@ -31,3 +31,9 @@ async def update_user_info(db: AsyncSession, user_id: int, form: users_schemes.P
 
     if update_data:
         await users_crud.update(db, user_id, **update_data)
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail="Empty form"
+    )

@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from src.api import deps
 from src.schemes import auth
-from src.services import email, security_services
+from src.services import email_services, security_services
 
 
 router = APIRouter()
@@ -81,4 +81,4 @@ async def validate_email(
         путем отправки кода на указанную почту
     """
     code = await security_services.generate_validation_code(redis, form.email)
-    tasks.add_task(email.send_validation_email, form.email, code)
+    tasks.add_task(email_services.send_validation_email, form.email, code)

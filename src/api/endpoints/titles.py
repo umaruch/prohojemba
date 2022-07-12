@@ -3,7 +3,7 @@ from fastapi import APIRouter, Form, UploadFile, File, Request
 
 
 from src.core.constants import TitleTypes, ActivityStates
-from src.schemes.titles import CreateTitleModel
+from src.schemes.titles_schemes import CreateTitleModel
 
 
 router = APIRouter()
@@ -18,17 +18,8 @@ async def get_titles(type: TitleTypes, offset: int, limit: int) -> None:
 
 @router.post("", tags=["Тайтлы"])
 async def create_title(
-    name: str = Form(...),
-    type: TitleTypes = Form(...),
-    cover: Optional[UploadFile] = File(None),
-    description: Optional[str] = Form(None),
-    year: int = Form(...)
 ):
-    """
-        Создание новой записи о тайтле
-    """
-    title = CreateTitleModel(name=name, type=type, cover=cover, description=description, year=year)
-    return title
+    pass
 
 
 @router.get("/{title_id}", tags=["Тайтлы"])
