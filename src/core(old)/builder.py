@@ -4,7 +4,7 @@ from fastapi import FastAPI, APIRouter
 
 from src.core.settings import settings
 from src.core.events import create_startup_handler, create_shutdown_handler
-from src.api.routers import routers
+from src.api.base import routers
 
 
 def get_application() -> FastAPI:
