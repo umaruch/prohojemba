@@ -14,6 +14,7 @@ async def get_titles(type: TitleTypes, offset: int, limit: int) -> None:
     """
         Получение списка общей информации о тайтлах
     """
+    pass
 
 
 @router.post("", tags=["Тайтлы"])

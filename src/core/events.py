@@ -1,24 +1,18 @@
 from typing import Callable
 from fastapi import FastAPI
 
-
-from src.core.settings import Settings
-from src.core.components import db, redis
+from src.core.settings.app import AppSettings
 
 
-def create_startup_handler(app: FastAPI, settings: Settings) -> Callable:
-    async def start_app() -> None:
-        # Отсюдова запускаются функции, которые надо выполнить при включении сервера
-        db.connect(app, settings.database)
-        redis.connect(app, settings.redis)
+def create_start_app_handler(app: FastAPI, settings: AppSettings) -> Callable:
+    async def on_startup() -> None:
+        pass
 
-    return start_app
+    return on_startup
 
 
-def create_shutdown_handler(app: FastAPI) -> Callable:
-    async def stop_app() -> None:
-        # Отсюдова запускаются функции, которые надо выполнить при отключении сервера
-        await db.disconnect(app)
-        await redis.disconnect(app)
+def create_stop_app_handler(app: FastAPI) -> Callable:
+    async def on_shutdown() -> None:
+        pass
 
-    return stop_app
+    return on_shutdown
