@@ -18,14 +18,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-
-from src.core.settings import settings
-from src.models.base import Base
-from src.models.users import User
-from src.models.titles import Title
-from src.models.activity import Activity
-
-target_metadata = Base.metadata
+target_metadata = None
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -45,7 +38,7 @@ def run_migrations_offline():
     script output.
 
     """
-    url = settings.database.URL.replace("postgresql+asyncpg", "postgresql")
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -64,11 +57,8 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.database.URL.replace("postgresql+asyncpg", "postgresql")
-
     connectable = engine_from_config(
-        configuration,
+        config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
